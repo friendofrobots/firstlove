@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with TexturePacker http://texturepacker.com-->
+<!-- $TexturePacker:SmartUpdate:edd9135b0b54b7812e75c8713cd2f651$ -->
+<!--Format:
+n  => name of the sprite
+x  => sprite x pos in texture
+y  => sprite y pos in texture
+w  => sprite width (may be trimmed)
+h  => sprite height (may be trimmed)
+oX => sprite's x-corner offset (only available if trimmed)
+oY => sprite's y-corner offset (only available if trimmed)
+oW => sprite's original width (only available if trimmed)
+oH => sprite's original height (only available if trimmed)
+r => 'y' only set if sprite is rotated
+-->
+<TextureAtlas imagePath="bigsheet.png" width="2048" height="2048">
+    <sprite n="barrel.png" x="0" y="0" w="128" h="64"/>
+    <sprite n="brackish.png" x="128" y="0" w="96" h="192"/>
+    <sprite n="bridges.png" x="224" y="0" w="192" h="224"/>
+    <sprite n="buckets.png" x="416" y="0" w="96" h="64"/>
+    <sprite n="cabinets.png" x="512" y="0" w="192" h="416"/>
+    <sprite n="castle_lightsources.png" x="704" y="0" w="160" h="128"/>
+    <sprite n="castle_outside.png" x="864" y="0" w="544" h="352"/>
+    <sprite n="castlefloors.png" x="1408" y="0" w="320" h="320"/>
+    <sprite n="castlefloors_outside.png" x="1728" y="0" w="128" h="160"/>
+    <sprite n="castlewalls.png" x="0" y="416" w="384" h="480"/>
+    <sprite n="cement.png" x="384" y="416" w="96" h="192"/>
+    <sprite n="cementstair.png" x="480" y="416" w="160" h="128"/>
+    <sprite n="chests.png" x="640" y="416" w="64" h="96"/>
+    <sprite n="country.png" x="704" y="416" w="160" h="128"/>
+    <sprite n="cup.png" x="864" y="416" w="32" h="64"/>
+    <sprite n="dirt.png" x="896" y="416" w="96" h="192"/>
+    <sprite n="dirt2.png" x="992" y="416" w="96" h="192"/>
+    <sprite n="dungeon.png" x="1088" y="416" w="416" h="256"/>
+    <sprite n="grass.png" x="1504" y="416" w="96" h="192"/>
+    <sprite n="grassalt.png" x="1600" y="416" w="96" h="192"/>
+    <sprite n="hole.png" x="1696" y="416" w="96" h="192"/>
+    <sprite n="holek.png" x="1792" y="416" w="96" h="192"/>
+    <sprite n="holemid.png" x="1888" y="416" w="96" h="192"/>
+    <sprite n="house.png" x="0" y="896" w="288" h="224"/>
+    <sprite n="inside.png" x="288" y="896" w="320" h="320"/>
+    <sprite n="kitchen.png" x="608" y="896" w="64" h="128"/>
+    <sprite n="lava.png" x="672" y="896" w="96" h="192"/>
+    <sprite n="lavarock.png" x="768" y="896" w="96" h="192"/>
+    <sprite n="mountains.png" x="864" y="896" w="384" h="288"/>
+    <sprite n="rock.png" x="1248" y="896" w="64" h="32"/>
+    <sprite n="signs.png" x="1312" y="896" w="96" h="64"/>
+    <sprite n="stairs.png" x="1408" y="896" w="256" h="448"/>
+    <sprite n="treetop.png" x="1664" y="896" w="192" h="224"/>
+    <sprite n="trunk.png" x="1856" y="896" w="192" h="96"/>
+    <sprite n="victoria.png" x="0" y="1344" w="352" h="160"/>
+    <sprite n="water.png" x="352" y="1344" w="96" h="192"/>
+    <sprite n="waterfall.png" x="448" y="1344" w="96" h="160"/>
+    <sprite n="watergrass.png" x="544" y="1344" w="96" h="192"/>
+</TextureAtlas>
