@@ -9704,5 +9704,6 @@
  <objectgroup name="Object Layer 1" width="40" height="60">
   <object name="cameraOrigin" x="0" y="1280"/>
   <object name="p1Spawn" x="64" y="1408"/>
+  <object name="npc1Spawn" x="736" y="1152"/>
  </objectgroup>
 </map>

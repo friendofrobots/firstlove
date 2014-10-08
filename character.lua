@@ -15,20 +15,12 @@ local Character = {}
 -- Base Character
 -------------------------------
 
---[[ - non-AnAL sprites with margins and paddings
-function rowOfSprites ( spritesheet, spritewidth, spriteheight, row_num, xmargin, ymargin, xpadding, ypadding )
-  local numSprites = (spritesheet:getWidth() - xmargin * 2) / (spritewidth - xpadding * 2)
-  
-  for i=1, numSprites do
-    sprites[i] = love.graphics.newQuad(xmargin + (i - 1) * (spritewidth + xpadding) + xpadding, ymargin + (row_num - 1) * (spriteheight + ypadding) + ypadding,
-        spritewidth, spriteheight, spritesheet:getDimensions())
---]]
-
-function Character.newBase ( spritesheetPath )
+function Character.newBase ( name, spritesheetPath )
   local spritesheet = love.graphics.newImage(spritesheetPath)
   spritesheet:setFilter("nearest", "linear")
   
   character = {
+    name = name,
     sheet = spritesheet,
     grid = {},
     facingDirection = 'DOWN',
@@ -39,7 +31,8 @@ function Character.newBase ( spritesheetPath )
     y = 1, -- on the grid
     walking = false,
     moveDelta = 0,
-    speed = 3
+    speed = 3,
+    status = 'ready'
   }
 
   character.grid = anim8.newGrid(64, 64, character.sheet:getDimensions())
@@ -103,6 +96,7 @@ function Character.newBase ( spritesheetPath )
   end
 
   function character:draw()
+    love.graphics.setColor(255,255,255,255)
     local viewX, viewY = mapData:mapToView(self.x, self.y)
     local windowX = viewX * 32 - 16
     local windowY = viewY * 32 - 32
@@ -121,7 +115,9 @@ function Character.newBase ( spritesheetPath )
       end
     end
 
-    self.activeAnim:draw(self.sheet, math.floor(windowX), math.floor(windowY))
+    if self.visible then
+      self.activeAnim:draw(self.sheet, math.floor(windowX), math.floor(windowY))
+    end
   end
 
   function character:update( dt )
@@ -129,92 +125,32 @@ function Character.newBase ( spritesheetPath )
     self:moveUpdate(dt)
   end
 
+  function character:updateTurn()
+    self.status = 'ready'
+    -- Manage cooldowns
+  end
+
+  function character:performMove( moveNumber )
+    -- lookup move in the table and execute it
+    return false -- if move not ready, true if executed
+  end
+
+
   character:faceDirection(character.facingDirection)
   return character
 end
 
 -------------------------------
--- Character
+-- Player Character
 -- Extends Base Character
 -- Implements Move, MoveQueue methods
 -- and the walk animations
 -------------------------------
---[[
-function Character.newMoving( deck, mapData )
-  local character = Character.newBase ( deck )
-  character.mapData = mapData
-  character.SPEED = 6
-  character.WALK_FRAME_RATE = 12
-  character.FRAMES_PER_STEP =  character.WALK_FRAME_RATE / character.SPEED -- should be a whole number for now
 
-  character.moving = false
-  character.lastDir = nil
-  character.startFrame = 1
+function Character.newAI( name, spritesheetPath )
+  local character = Character.newBase ( name, spritesheetPath )
 
-  character.moveQueue = Utils.Queue.new ()
-
-  function character:walkAnim ( startFrame, dirMod )
-    local walkAnim = MOAIAnimCurve.new ()
-    walkAnim:reserveKeys ( self.FRAMES_PER_STEP )
-    for i = 0, character.FRAMES_PER_STEP - 1, 1 do
-      walkAnim:setKey ( i + 1, i / self.WALK_FRAME_RATE, dirMod + (startFrame + i) % 9, MOAIEaseType.FLAT)
-    end
-    self.startFrame = self.startFrame + self.FRAMES_PER_STEP
-    return walkAnim
-  end
-
-  function character:addToMoveQueue ( direction )
-    self.moveQueue:push( direction )
-  end
-
-  function character:checkMoveQueue ()
-    local direction = ''
-    if not self.moveQueue:isEmpty () then -- if on queue, move
-      direction = self.moveQueue:pop ()
-      if not self.moving or self.lastDir ~= direction then
-        self.startFrame = 1
-      end
-      return self:move ( direction )
-    else
-      self.moving = false
-      self:faceDirection ( self.lastDir )
-    end
-  end
-
-  function character:move ( direction ) -- returns seekLoc action
-    x , y = self.x , self.y
-    local animIndex = self.directions[direction]
-    if direction == 'UP' then
-      y = y + 1
-    elseif direction == 'LEFT' then
-      x = x - 1
-    elseif direction == 'DOWN' then
-      y = y - 1
-    elseif direction == 'RIGHT' then
-      x = x + 1
-    else
-      error('character asked to moved without proper direction')
-    end
-
-    self.lastDir = direction
-
-    if self.mapData:checkCollision ( x, y ) then
-      self.moving = false
-      self:faceDirection ( direction )
-      return
-    end
-
-    self.moving = true
-    anim = MOAIAnim:new ()
-    anim:reserveLinks ( 1 )
-    anim:setMode ( MOAITimer.NORMAL )
-    anim:setSpan ( 1 / self.SPEED )
-    anim:setLink ( 1, self:walkAnim( self.startFrame, animIndex ), self, MOAIProp2D.ATTR_INDEX )
-    anim:start ()
-    self.x, self.y = x, y
-
-    return self:seekLoc ( x, y, 1 / self.SPEED, MOAIEaseType.LINEAR )
-  end
+  
 
   return character
 end

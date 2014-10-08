@@ -360,6 +360,17 @@ return {
           height = 0,
           visible = true,
           properties = {}
+        },
+        {
+          name = "npc1Spawn",
+          type = "",
+          shape = "rectangle",
+          x = 736,
+          y = 1152,
+          width = 0,
+          height = 0,
+          visible = true,
+          properties = {}
         }
       }
     }
