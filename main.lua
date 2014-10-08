@@ -83,7 +83,7 @@ function love.load()
   -- which turn in the battle
   -------------------------------
   turnManager = {
-    turnCount = 0,
+    turnCount = 1,
     activeCharacter = '',
     phase = 1,
     transitionTimer = 2
@@ -91,33 +91,10 @@ function love.load()
 
   function turnManager:characterRests( character )
     character.status = 'exhausted'
-    local allCharactersExhausted = true
-    if self.phase == 1 then
-      for i, char in ipairs(characterManager.players) do
-        if char.status ~= 'exhausted' then
-          allCharactersExhausted = false
-          break
-        end
-      end
-    elseif self.phase == 2 then
-      for i, char in ipairs(characterManager.players) do
-        if char.status ~= 'exhausted' then
-          allCharactersExhausted = false
-          break
-        end
-      end
-    else
-      error ('invalid phase '.. self.phase)
-    end
-
-    if allCharactersExhausted then
-      print('next phase')
-      self:nextPhase()
-    end
   end
 
   function turnManager:getCursorState()
-    if not self:ready() then
+    if self:getState() ~= 'players' then
       return 'INACTIVE'
     end
     if self.activeCharacter.status == 'ready' then
@@ -129,36 +106,32 @@ function love.load()
     end
   end
 
-  function turnManager:nextPhase()
-    if self.phase == 1 then
-      self.phase = 2
-      characterManager:newPhase('enemies')
-      self.activeCharacter = characterManager.enemies[1]
-      aiManager:yourTurn()
-    else
-      self.phase = 1
-      characterManager:newPhase('players')
-      self.activeCharacter = characterManager.players[1]
-      self:newTurn()
-    end
+  function turnManager:newPhase( team )
+    characterManager:newPhase(team)
+    self.activeCharacter = characterManager:nextCharacter(team)
     self.transitionTimer = 2
   end
 
   function turnManager:newTurn()
     self.turnCount = self.turnCount + 1
-    for i, character in ipairs(characterManager.players) do
+    for i, character in ipairs(characterManager.teams.players) do
       character:updateTurn()
       character.status = 'ready'
     end
-    self.activeCharacter = characterManager.players[1]
   end
 
-  function turnManager:ready()
+  function turnManager:getState()
+    local state = 'none'
     if self.transitionTimer > 0 or self.walkTimer.walking then
-      return false
+      state = 'waiting'
     else
-      return true
+      if self.phase == 1 then
+        state = 'players'
+      else
+        state = 'enemies'
+      end 
     end
+    return state
   end
 
   function turnManager:draw()
@@ -195,6 +168,26 @@ function love.load()
       self.transitionTimer = 0
     else
       self.transitionTimer = self.transitionTimer - dt
+    end
+
+    -- Check turn state
+    if self.activeCharacter.status == 'exhausted' then
+      if self.phase == 1 then
+        if characterManager:allExhausted('players') then
+          self.phase = 2
+          self:newPhase('enemies')
+        else
+          self.activeCharacter = characterManager:nextCharacter('players')
+        end
+      else
+        if characterManager:allExhausted('enemies') then
+          self.phase = 1
+          self:newPhase('players')
+          self.turnCount = self.turnCount + 1
+        else
+          self.activeCharacter = characterManager:nextCharacter('enemies')
+        end
+      end
     end
 
     self:checkWalkTimer(dt)
@@ -282,36 +275,43 @@ function love.load()
   Character = require "character"
 
   characterManager = {
-    players = {},
-    enemies = {},
+    teams = {
+      players = {},
+      enemies = {}
+    }
   }
 
   function characterManager:allCharacters()
-    local state = 0
-    local p_iter, ptable, pvar = pairs(self.players)
-    local e_iter, etable, evar = pairs(self.enemies)
-    local which_iter = function( t, var )
-      if state == 1 then
-        return e_iter(etable, var)
-      end
-      local var1 = p_iter(t, var)
-      if var1 == nil then
-        state = 1
-        return e_iter(etable, evar)
-      end
-      return p_iter(t, var)
+    -- this is a dumb, unreadable experiment, but I think it works!
+    local team_iter, team_table, team_var = pairs(self.teams)
+    local first_team, first_characters = team_iter(team_table, team_var)
+    local init_iter, init_table, init_var = ipairs(first_characters)
+
+    local combined_iter = function ( t, var )
+      -- teams must have at least 1 team in it
+      local reset = false
+      repeat
+        local team, characters = team_iter(team_table, team_var)
+        local char_iter, char_table, char_var = ipairs(characters)
+        if char_iter(char_table, not reset and var or char_var) then -- have to pass new var if we moved to the next team
+          return char_iter(char_table, not reset and var or char_var)
+        else
+          team_var = team
+          reset = true
+        end
+      until not team_iter(team_table, team_var)
+      return nil
     end
-    return which_iter, ptable, pvar
+
+    return combined_iter, init_table, init_var
   end
 
   function characterManager:loadCharacter(name, spritesheetPath, spawnName, team)
     local character = Character.newBase(name, spritesheetPath)
     local spawn = mapData:getObject(spawnName)
     character:jumpToLoc(spawn.x, spawn.y)
-    if team == 'player' then
-      table.insert(self.players, character)
-    elseif team == 'enemy' then
-      table.insert(self.enemies, character)
+    if self.teams[team] then
+      table.insert(self.teams[team], character)
     else
       error ('Invalid team name')
     end
@@ -319,37 +319,88 @@ function love.load()
   end
 
   function characterManager:draw()
-    for i, character in ipairs(self.players) do
+    for i, character in ipairs(self.teams.players) do
       character:draw()
     end
-    for i, character in ipairs(self.enemies) do
+    for i, character in ipairs(self.teams.enemies) do
       character:draw()
     end
   end
 
   function characterManager:update( dt )
-    for i, character in ipairs(self.players) do
+    for i, character in ipairs(self.teams.players) do
       character:update(dt)
     end
-    for i, character in ipairs(self.enemies) do
+    for i, character in ipairs(self.teams.enemies) do
       character:update(dt)
+    end
+  end
+
+  function characterManager:nextCharacter( team, lastCharacter )
+    -- optional character variable indicates where in the list,
+    -- function will return next not exhausted character
+    if self.teams[team] then
+      if not lastCharacter then
+        for i, character in ipairs(self.teams[team]) do
+          if character.status ~= 'exhausted' then
+            return character
+          end
+        end
+      else
+        local foundCharacter = false
+        local n = 1
+        while true do
+          local character = self.teams[team][n]
+          if character then
+            if foundCharacter then
+              if character.status ~= 'exhausted' then
+                return character
+              end
+              -- if there are no non-exhausted characters, return the same character
+              if character == lastCharacter then
+                return lastCharacter
+              end
+            else
+              if character == lastCharacter then
+                foundCharacter = true
+              end
+            end
+            n = n + 1
+          else
+            n = 1
+          end
+        end
+      end
+    else
+      error ( 'Invalid team name' )
+    end
+  end
+
+  function characterManager:allExhausted ( team )
+    if self.teams[team] then
+      for i, character in ipairs(self.teams[team]) do
+        if character.status ~= 'exhausted' then
+          return false
+        end
+      end
+      return true
+    else
+      error( 'Invalid team name' )
     end
   end
 
   function characterManager:newPhase( team )
-    if team == 'players' then
-      for i, player in ipairs(self.players) do
-        player:updateTurn()
+    if self.teams[team] then
+      for i, character in ipairs(self.teams[team]) do
+        character:updateTurn()
       end
-    elseif team == 'enemies' then
-      for i, enemy in ipairs(self.enemies) do
-        enemy:updateTurn()
-      end        
+    else
+      error( 'Invalid team name' )
     end
   end
 
-  characterManager:loadCharacter('felf', "Assets/felf.png", "p1Spawn", 'player')
-  characterManager:loadCharacter('enemy1', "Assets/malesoldiernormal.png", "npc1Spawn", 'enemy')
+  characterManager:loadCharacter('felf', "Assets/felf.png", "p1Spawn", 'players')
+  characterManager:loadCharacter('enemy1', "Assets/malesoldiernormal.png", "npc1Spawn", 'enemies')
 
   aiManager = {
     sleepTimer = 0,
@@ -375,7 +426,7 @@ function love.load()
 
     self.acting = true
     self.character = character
-    turnManager:walkTo( x, y )
+    turnManager:walkTo( character.x + x, character.y + y )
   end
 
   function aiManager:update(dt)
@@ -385,16 +436,20 @@ function love.load()
       self.sleepTimer = self.sleepTimer - dt
     end
 
-    if self.acting then
-      if not self.character.walking then
-        turnManager:rest()
-        self.acting = false
-        self.character = nil
+    if turnManager:getState() == 'enemies' then
+      if self.acting then
+        if not self.character.walking then
+          self.acting = false
+          self.character = nil
+          turnManager:rest()
+        end
+      else
+        self:takeTurn(turnManager.activeCharacter)
       end
     end
   end
 
-  turnManager:newTurn()
+  turnManager:newPhase('players')
 
 end
 
@@ -443,6 +498,7 @@ function love.update( dt )
 
   characterManager:update(dt)
   turnManager:update(dt)
+  aiManager:update(dt)
 
   -- Mouse scrolling
   local x, y = love.mouse.getPosition( )
@@ -490,7 +546,7 @@ function love.keypressed(key)
   end
 
   if key == '1' or key == '2' or key == '3' or key == '4' or key == " " then
-    if turnManager:ready() then
+    if turnManager:getState() == 'players' then
       turnManager:performMove( key )
     end
   end
@@ -503,7 +559,7 @@ end
 function love.mousepressed( x, y, button )
   
   if button == "l" then
-    if turnManager:ready() then
+    if turnManager:getState() == 'players' then
       local mapX,mapY = mapData:viewToMap(math.ceil(x / mapData.tilewidth), math.ceil(y / mapData.tileheight))
       turnManager:walkTo(mapX, mapY)
     end
