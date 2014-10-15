@@ -98,8 +98,8 @@ function Character.newBase ( name, spritesheetPath )
   function character:draw()
     love.graphics.setColor(255,255,255,255)
     local viewX, viewY = mapData:mapToView(self.x, self.y)
-    local windowX = viewX * 32 - 16
-    local windowY = viewY * 32 - 32
+    local windowX = (viewX - 1) * 32 - 16
+    local windowY = (viewY - 1) * 32 - 32
 
     if self.moveDelta > 0 then
       if self.facingDirection == 'UP' then

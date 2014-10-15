@@ -86,11 +86,14 @@ function love.load()
     turnCount = 1,
     activeCharacter = '',
     phase = 1,
-    transitionTimer = 2
+    transitionTimer = 2,
+    reachableSquares = {}
   }
 
   function turnManager:characterRests( character )
     character.status = 'exhausted'
+    cursor.lastX = 0
+    cursor.lastY = 0
   end
 
   function turnManager:getCursorState()
@@ -106,9 +109,14 @@ function love.load()
     end
   end
 
+  function turnManager:nextCharacter( team )
+    self.activeCharacter = characterManager:nextCharacter(team)
+    self:updateReachableSquares()
+  end
+
   function turnManager:newPhase( team )
     characterManager:newPhase(team)
-    self.activeCharacter = characterManager:nextCharacter(team)
+    turnManager:nextCharacter(team)
     self.transitionTimer = 2
   end
 
@@ -135,7 +143,15 @@ function love.load()
   end
 
   function turnManager:draw()
-    love.graphics.setColor(255,127,0,255)
+    if self:getCursorState() == 'READY' then
+      love.graphics.setColor(0, 255, 255, 64)
+      for i, reachableSquare in ipairs(self.reachableSquares) do
+        local viewX, viewY = mapData:mapToView(reachableSquare[1], reachableSquare[2])
+        love.graphics.rectangle("fill", (viewX - 1) * 32, (viewY - 1) * 32, 32, 32)
+      end
+    end
+
+    love.graphics.setColor(255,128,0,255)
     if self.transitionTimer > 0 then
       local announcement = ''
       if self.phase == 1 then
@@ -177,7 +193,7 @@ function love.load()
           self.phase = 2
           self:newPhase('enemies')
         else
-          self.activeCharacter = characterManager:nextCharacter('players')
+          turnManager:nextCharacter('players')
         end
       else
         if characterManager:allExhausted('enemies') then
@@ -185,7 +201,7 @@ function love.load()
           self:newPhase('players')
           self.turnCount = self.turnCount + 1
         else
-          self.activeCharacter = characterManager:nextCharacter('enemies')
+          turnManager:nextCharacter('enemies')
         end
       end
     end
@@ -194,7 +210,33 @@ function love.load()
   end
 
   -- Turn Manager Actions
- turnManager.walkTimer = {
+  function turnManager:updateReachableSquares()
+    self.reachableSquares = self:getReachableSquares()
+  end
+
+  function turnManager:getReachableSquares( character )
+    if not character then
+      character = self.activeCharacter
+    end
+
+    local squares = {}
+    local distance = 6
+    for i = -distance, distance do
+      local stepsLeft = distance - i
+      for j = -stepsLeft, stepsLeft do
+        if character.x + i > 0 and character.y + j > 0 then
+          local path, length = mapData.jumper.finder:getPath(character.x, character.y, character.x + i, character.y + j)
+          if path and length > 0 and length <= distance then
+            table.insert(squares, {character.x + i ,character.y + j})
+          end
+        end
+      end
+    end
+
+    return squares
+  end
+
+  turnManager.walkTimer = {
     walking = false,
     path_iter = nil
   }
@@ -238,6 +280,7 @@ function love.load()
     if self.activeCharacter.status == 'ready' then
       local path, length = mapData.jumper.finder:getPath(self.activeCharacter.x, self.activeCharacter.y, mapX, mapY)
       if path and length > 0 and length <= 6 then
+        mapData:moveCollision(self.activeCharacter.x, self.activeCharacter.y, mapX, mapY)
         path_iter = path:iter()
         path_iter()
         self:walkPath(path_iter)
@@ -248,13 +291,23 @@ function love.load()
   function turnManager:rest()
     if self.activeCharacter.status ~= 'exhausted' then
       self:characterRests(self.activeCharacter)
+
     end
   end
 
   function turnManager:performMove( key )
+    local movePerformed = false
+    if key == "1" then
+      if self.activeCharacter.status ~= 'exhausted' then
+        -- shoot or something!
+      end
+    end
+
     if key == " " then
       self:rest()
     end
+
+    return movePerformed
   end
   --[[
   -------------------------------
@@ -310,6 +363,7 @@ function love.load()
     local character = Character.newBase(name, spritesheetPath)
     local spawn = mapData:getObject(spawnName)
     character:jumpToLoc(spawn.x, spawn.y)
+    mapData:addCollision(spawn.x, spawn.y)
     if self.teams[team] then
       table.insert(self.teams[team], character)
     else
@@ -400,7 +454,11 @@ function love.load()
   end
 
   characterManager:loadCharacter('felf', "Assets/felf.png", "p1Spawn", 'players')
-  characterManager:loadCharacter('enemy1', "Assets/malesoldiernormal.png", "npc1Spawn", 'enemies')
+  characterManager:loadCharacter('soldier', "Assets/malesoldiernormal.png", "p2Spawn", 'players')
+  characterManager:loadCharacter('rogue', "Assets/rogue.png", "p3Spawn", 'players')
+  characterManager:loadCharacter('badelf', "Assets/femaleelfwalk.png", "npc1Spawn", 'enemies')
+  characterManager:loadCharacter('zombie', "Assets/malesoldierzombie.png", "npc2Spawn", 'enemies')
+  characterManager:loadCharacter('gunner', "Assets/gunnerwalkcycle1.png", "npc3Spawn", 'enemies')
 
   aiManager = {
     sleepTimer = 0,
@@ -461,12 +519,13 @@ function love.draw()
   love.graphics.setColor(255,255,255,255)
   mapData:draw()
 
+  turnManager:draw()
+
   -- Draw cursor
   local cursorX, cursorY = love.mouse.getPosition()
   cursor:draw(cursorX, cursorY, turnManager:getCursorState())
 
   characterManager:draw()
-  turnManager:draw()
 
   --[[
   -- Draw collision

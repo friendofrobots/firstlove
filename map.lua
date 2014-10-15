@@ -3,6 +3,9 @@
 -------------------------------
 -- Tiled Importer
 
+local Grid = require ("jumper.grid") -- The grid class
+local Pathfinder = require ("jumper.pathfinder") -- The pathfinder class
+
 local MapData = {}
 
 -------------------------------
@@ -123,9 +126,6 @@ function loadFromFile ( path, filename, view )
   -- Value for walkable tiles
   local walkable = 0
 
-  -- Library setup
-  local Grid = require ("jumper.grid") -- The grid class
-  local Pathfinder = require ("jumper.pathfinder") -- The pathfinder class
   -- Creates a grid object
   local grid = Grid(mapData.collisionMatrix) 
   -- Creates a pathfinder object using Jump Point Search
@@ -167,6 +167,44 @@ function MapData.new ( path, filename )
       return nil
     end
   end
+
+  function mapData:addCollision ( x, y, value )
+    print(x,y,self.collisionMatrix[y][x])
+    if self.collisionMatrix[y][x] then
+      self.collisionMatrix[y][x] = value and value or 2
+      self.jumper.grid = Grid(self.collisionMatrix)
+      self.jumper.finder:setGrid(self.jumper.grid)
+    else
+      error('invalid x,y collision location')
+    end
+  end
+
+  function mapData:removeCollision ( x, y, value )
+    if self.collisionMatrix[y][x] then
+      self.collisionMatrix[y][x] = value and value or 0
+      self.jumper.grid = Grid(self.collisionMatrix)
+      self.jumper.finder:setGrid(self.jumper.grid)
+    else
+      error('invalid x,y collision location')
+    end
+  end
+
+  function mapData:moveCollision ( fromX, fromY, toX, toY, fromValue, toValue )
+    if self.collisionMatrix[fromY][fromX] then
+      self.collisionMatrix[fromY][fromX] = fromValue and fromValue or 0
+    else
+      error('invalid fromX,fromY collision location')
+    end
+    if self.collisionMatrix[toY][toX] then
+      self.collisionMatrix[toY][toX] = toValue and toValue or 2
+    else
+      error('invalid toX,toY collision location')
+    end
+    self.jumper.grid = Grid(self.collisionMatrix)
+    self.jumper.finder:setGrid(self.jumper.grid)
+  end
+
+  -- This doesn't work anymore!!!
   function mapData:checkCollision ( x, y )
     if x < 0 or y < 0 or x > self.width - 1 or y > self.height - 1 then
       return true
@@ -218,7 +256,7 @@ function MapData.new ( path, filename )
   end
 
   function mapData:mapToView( mapX, mapY )
-    return mapX - self.view.x, mapY - self.view.y
+    return mapX - self.view.x + 1, mapY - self.view.y + 1
   end
 
   function mapData:viewToMap( viewX, viewY )

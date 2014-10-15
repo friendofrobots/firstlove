@@ -371,6 +371,50 @@ return {
           height = 0,
           visible = true,
           properties = {}
+        },
+        {
+          name = "p2Spawn",
+          type = "",
+          shape = "rectangle",
+          x = 32,
+          y = 1312,
+          width = 0,
+          height = 0,
+          visible = true,
+          properties = {}
+        },
+        {
+          name = "p3Spawn",
+          type = "",
+          shape = "rectangle",
+          x = 32,
+          y = 1504,
+          width = 0,
+          height = 0,
+          visible = true,
+          properties = {}
+        },
+        {
+          name = "npc2Spawn",
+          type = "",
+          shape = "rectangle",
+          x = 544,
+          y = 1120,
+          width = 0,
+          height = 0,
+          visible = true,
+          properties = {}
+        },
+        {
+          name = "npc3Spawn",
+          type = "",
+          shape = "rectangle",
+          x = 736,
+          y = 1312,
+          width = 0,
+          height = 0,
+          visible = true,
+          properties = {}
         }
       }
     }
